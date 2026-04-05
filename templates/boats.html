@@ -17,11 +17,10 @@
     }
 
     .boat ul {
-        padding-left:25px
+        padding-left: 25px;
     }
     .boat li.boat_head {
         font-weight: 700;
-        font-style: normal;
     }
     .boat li {
         font-style: italic;
@@ -36,7 +35,7 @@
     }
     .pagination_button {
         font-size: 20px;
-        background-color: #4CAF50; /* Green */
+        background-color: #4CAF50;
         border: none;
         color: white;
         padding: 2px 2px 4px;
@@ -44,6 +43,9 @@
         text-decoration: none;
         display: inline-block;
         width: 30px;
+    }
+    .pagination_button.active {
+        background-color: black;
     }
 
     .column {
@@ -76,132 +78,168 @@
         background-color: #006586;
     }
 
-    .sort-controls {
+    .control-panel {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        background-color: #4CAF50;
+        color: white;
+        font-weight: 400;
+        padding: 8px;
+        border-radius: 4px;
+    }
+
+    #sortForm {
+        display: contents;
+    }
+
+    .sort-row, .filter-row {
         display: flex;
         gap: 15px;
         align-items: center;
-        background-color: #4CAF50;
-        color:white;
-        font-weight:400;
     }
-    
-    .sort-controls select {
-        padding: 8px 12px;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        font-size: 14px;
-    }
-    
+
     .sort-order-toggle {
         display: flex;
         gap: 5px;
     }
-    
+
     .sort-order-toggle input[type="radio"] {
         cursor: pointer;
     }
-    
+
     .sort-order-toggle label {
         cursor: pointer;
         font-size: 14px;
         margin: 0;
+        color: white;
     }
-    
-    .pagination-controls {
+
+    .filter-group { display: none; }
+
+.pagination-controls {
         display: flex;
         gap: 5px;
     }
 
-    #sortForm {
+    .price-inputs {
         display: flex;
-        gap: 15px;
+        gap: 8px;
         align-items: center;
-        margin:5px;
+    }
+
+    .price-inputs input, .price-inputs span,
+    .filter-input select, .filter-input span,
+    .sort-row select, .sort-row label {
+        color: white;
+        font-size: 13px;
+    }
+
+    .price-inputs input, .filter-input select, .sort-row select {
+        padding: 5px 8px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        background-color: white;
+        color: black;
+    }
+
+    .price-inputs input {
+        width: 80px;
+    }
+
+    .filter-input {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+
+    .sort-row label {
+        white-space: nowrap;
+        font-size: 14px;
     }
 </style>
 
-{% macro build_query_string(search_params, sort_by, sort_order) %}
-    {%- set query_parts = [] -%}
-    {%- if search_params.id -%}
-        {%- set _ = query_parts.append("id=" + search_params.id) -%}
-    {%- endif -%}
-    {%- if search_params.name -%}
-        {%- set _ = query_parts.append("name=" + search_params.name) -%}
-    {%- endif -%}
-    {%- if search_params.type -%}
-        {%- set _ = query_parts.append("type=" + search_params.type) -%}
-    {%- endif -%}
-    {%- if search_params.owner_id -%}
-        {%- set _ = query_parts.append("owner_id=" + search_params.owner_id) -%}
-    {%- endif -%}
-    {%- if search_params.rental_price -%}
-        {%- set _ = query_parts.append("rental_price=" + search_params.rental_price) -%}
-    {%- endif -%}
-    {%- set _ = query_parts.append("sort_by=" + sort_by) -%}
-    {%- set _ = query_parts.append("sort_order=" + sort_order) -%}
-    {{- "?" + query_parts|join("&") -}}
+{% macro build_query_string(search_params, sort_by, sort_order) -%}
+{%- set query_parts = [] -%}
+{%- for key, value in search_params.items() if value -%}
+    {%- set _ = query_parts.append(key + '=' + value) -%}
+{%- endfor -%}
+{%- set _ = query_parts.append('sort_by=' + sort_by) -%}
+{%- set _ = query_parts.append('sort_order=' + sort_order) -%}
+{{- '?' + query_parts|join('&') -}}
 {%- endmacro %}
 
 {% extends "base.html" %}
 {% block body %}
-    {% set prev_page = page - 1 %}  <!-- variables in jinja --->
     <div class="column">
         <h3>Page {{ page }}</h3>
-
         <div class="flex-box">
             {% for boat in boats %}
                 <div class="boat">
                     <ul>
                         <li class="boat_head">Boat id: {{ boat['id'] }}</li>
-                        <ul>
-                            <li>Name: {{ boat['name'] }}</li>
-                            <li>Type: {{ boat['type'] }}</li>
-                            <li>Owner ID: {{ boat['owner_id'] }}</li>
-                            <li>Price: {{ boat['rental_price'] }}</li>
-                        </ul>
+                        <li>Name: {{ boat['name'] }}</li>
+                        <li>Type: {{ boat['type'] }}</li>
+                        <li>Owner ID: {{ boat['owner_id'] }}</li>
+                        <li>Price: {{ boat['rental_price'] }}</li>
                     </ul>
                     <div class="boat-actions">
                         <a href="/update/{{ boat['id'] }}" class="boat-action-btn">Edit</a>
                     </div>
                 </div>
             {% endfor %}
-
             {% if boats | length < 1 %}
                 <h1>No data available</h1>
             {% endif %}
         </div>
 
         <div class="pagination_bar">
-            <div class="sort-controls">
+            <div class="control-panel">
                 <form method="GET" id="sortForm">
                     {% for key, value in search_params.items() %}
-                        {% if value %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endif %}
+                        {% if value and key not in ['type', 'min_price', 'max_price'] %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endif %}
                     {% endfor %}
-                    
-                    <label for="sortBy">Sort By:</label>
-                    <select name="sort_by" id="sortBy" onchange="this.form.submit();">
-                        <option value="id" {% if sort_by == 'id' %}selected{% endif %}>ID</option>
-                        <option value="name" {% if sort_by == 'name' %}selected{% endif %}>Name</option>
-                        <option value="rental_price" {% if sort_by == 'rental_price' %}selected{% endif %}>Price</option>
-                    </select>
-                    
-                    <div class="sort-order-toggle">
-                        <label><input type="radio" name="sort_order" value="ASC" {% if sort_order == 'ASC' %}checked{% endif %} onchange="this.form.submit();"> ASC</label>
-                        <label><input type="radio" name="sort_order" value="DESC" {% if sort_order == 'DESC' %}checked{% endif %} onchange="this.form.submit();"> DESC</label>
+                    <div class="sort-row">
+                        <label for="sortBy">Sort:</label>
+                        <select name="sort_by" id="sortBy" onchange="this.form.submit();">
+                            <option value="id" {% if sort_by == 'id' %}selected{% endif %}>ID</option>
+                            <option value="name" {% if sort_by == 'name' %}selected{% endif %}>Name</option>
+                            <option value="rental_price" {% if sort_by == 'rental_price' %}selected{% endif %}>Price</option>
+                        </select>
+                        <div class="sort-order-toggle">
+                            <label><input type="radio" name="sort_order" value="ASC" {% if sort_order == 'ASC' %}checked{% endif %} onchange="this.form.submit();"> ASC</label>
+                            <label><input type="radio" name="sort_order" value="DESC" {% if sort_order == 'DESC' %}checked{% endif %} onchange="this.form.submit();"> DESC</label>
+                        </div>
+                    </div>
+                    <div class="filter-row">
+                        <div class="filter-input">
+                            <span>Type:</span>
+                            <select name="type" id="filterType" onchange="this.form.submit();">
+                                <option value="">All Types</option>
+                                <option value="speed" {% if search_params.type == 'speed' %}selected{% endif %}>Speed</option>
+                                <option value="sail" {% if search_params.type == 'sail' %}selected{% endif %}>Sail</option>
+                                <option value="yacht" {% if search_params.type == 'yacht' %}selected{% endif %}>Yacht</option>
+                                <option value="banana" {% if search_params.type == 'banana' %}selected{% endif %}>Banana</option>
+                                <option value="house" {% if search_params.type == 'house' %}selected{% endif %}>House</option>
+                            </select>
+                        </div>
+                        <span>Price:</span>
+                        <div class="price-inputs">
+                            <input type="number" name="min_price" placeholder="Min" value="{{ search_params.min_price if search_params.min_price else '' }}" onchange="this.form.submit();">
+                            <span>-</span>
+                            <input type="number" name="max_price" placeholder="Max" value="{{ search_params.max_price if search_params.max_price else '' }}" onchange="this.form.submit();">
+                        </div>
                     </div>
                 </form>
             </div>
-            
             {% set query_string = build_query_string(search_params, sort_by, sort_order) %}
             <div class="pagination-controls">
                 <a href="/boats/{{ (page - 1)|string + query_string }}" class="pagination_button">&lt;</a>
-                <a class="pagination_button" style="background-color: black;">{{ page }}</a>
+                <a class="pagination_button active">{{ page }}</a>
                 <a href="/boats/{{ (page + 1)|string + query_string }}" class="pagination_button">{{ page + 1 }}</a>
                 <a href="/boats/{{ (page + 2)|string + query_string }}" class="pagination_button">{{ page + 2 }}</a>
                 <a href="/boats/{{ (page + 1)|string + query_string }}" class="pagination_button">&gt;</a>
             </div>
         </div>
     </div>
-
-
 {% endblock %}

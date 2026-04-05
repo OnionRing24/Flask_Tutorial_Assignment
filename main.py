@@ -51,16 +51,16 @@ def get_boats(page=1):
         params['name'] = f"%{request.args['name']}%"
     
     if request.args.get('type'):
-        conditions.append("type LIKE :type")
-        params['type'] = f"%{request.args['type']}%"
+        conditions.append("type = :type")
+        params['type'] = request.args['type']
     
-    if request.args.get('owner_id'):
-        conditions.append("owner_id = :owner_id")
-        params['owner_id'] = request.args['owner_id']
+    if request.args.get('min_price'):
+        conditions.append("rental_price >= :min_price")
+        params['min_price'] = request.args['min_price']
     
-    if request.args.get('rental_price'):
-        conditions.append("rental_price = :rental_price")
-        params['rental_price'] = request.args['rental_price']
+    if request.args.get('max_price'):
+        conditions.append("rental_price <= :max_price")
+        params['max_price'] = request.args['max_price']
     
     # Build the query
     where_clause = " AND ".join(conditions) if conditions else "1=1"
@@ -75,8 +75,8 @@ def get_boats(page=1):
         'id': request.args.get('id', ''),
         'name': request.args.get('name', ''),
         'type': request.args.get('type', ''),
-        'owner_id': request.args.get('owner_id', ''),
-        'rental_price': request.args.get('rental_price', '')
+        'min_price': request.args.get('min_price', ''),
+        'max_price': request.args.get('max_price', '')
     }
     
     print(boats)
