@@ -27,6 +27,17 @@ def get_boats(page=1):
     page = int(page)
     per_page = 10
     
+    # Validate sort_by parameter (whitelist approach)
+    allowed_sort_fields = ['id', 'name', 'rental_price']
+    sort_by = request.args.get('sort_by', 'id')
+    if sort_by not in allowed_sort_fields:
+        sort_by = 'id'
+    
+    # Validate sort_order parameter
+    sort_order = request.args.get('sort_order', 'ASC').upper()
+    if sort_order not in ['ASC', 'DESC']:
+        sort_order = 'ASC'
+    
     # Build WHERE clause dynamically from query parameters (if present)
     conditions = []
     params = {}
@@ -53,9 +64,10 @@ def get_boats(page=1):
     
     # Build the query
     where_clause = " AND ".join(conditions) if conditions else "1=1"
+    order_by_clause = f"ORDER BY {sort_by} {sort_order}"
     
     # Get paginated results
-    query = f"SELECT * FROM boats WHERE {where_clause} LIMIT {per_page} OFFSET {(page - 1) * per_page}"
+    query = f"SELECT * FROM boats WHERE {where_clause} {order_by_clause} LIMIT {per_page} OFFSET {(page - 1) * per_page}"
     boats = conn.execute(text(query), params).all()
     
     # Preserve search params for pagination links
@@ -68,7 +80,7 @@ def get_boats(page=1):
     }
     
     print(boats)
-    return render_template('boats.html', boats=boats, page=page, per_page=per_page, search_params=search_params)
+    return render_template('boats.html', boats=boats, page=page, per_page=per_page, search_params=search_params, sort_by=sort_by, sort_order=sort_order)
 
 
 @app.route('/search', methods=['GET'])
